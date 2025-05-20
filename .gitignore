@@ -1,0 +1,41 @@
+# Entorno virtual
+venv/
+.env
+
+# Archivos de sistema y caché
+__pycache__/
+*.py[cod]
+*.pyo
+*.log
+*.pot
+*.mo
+
+# Archivos de bases de datos
+*.sqlite3
+*.db
+
+# Archivos de migraciones si decides ignorarlos (opcional)
+# app/migrations/
+
+# Archivos de configuración local
+*.local
+.DS_Store
+Thumbs.db
+
+# Archivos específicos del proyecto
+import_csv.py
+/import_data/
+
+# Configs de editor (VS Code, JetBrains, etc.)
+.vscode/
+.idea/
+
+# Archivos ZIP u otros empaques temporales
+*.zip
+*.tar.gz
+*.bak
+
+# Archivos de despliegue opcionales
+*.pem
+*.crt
+*.key
