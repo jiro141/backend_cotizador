@@ -67,14 +67,29 @@ class Tipouser(models.Model):
 class Preguntas(models.Model):
     pregunta = models.CharField(max_length=255)
 
+    def __str__(self):
+        return self.pregunta
+
     class Meta:
         db_table = 'preguntas'
+
+
+class Respuesta(models.Model):
+    pregunta = models.OneToOneField(
+        Preguntas, on_delete=models.CASCADE, related_name='respuesta')
+    texto = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Respuesta a: {self.pregunta}"
+
+    class Meta:
+        db_table = 'respuestas'
 
 
 class Users(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)
+    password = models.CharField(max_length=128, blank=True, null=True)
     tipoUser = models.ForeignKey(
         Tipouser, on_delete=models.SET_NULL, null=True, blank=True)
     seguridad = models.ForeignKey(
