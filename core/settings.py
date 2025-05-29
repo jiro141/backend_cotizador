@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-q3!o1#$1u)($dj983*cck46_)9v85#m@_&tccj1-d0(iiy+o08
 DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
-
+CORS_ALLOW_ALL_ORIGINS = True
 
 # Application definition
 
@@ -43,7 +43,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "app",
+    'django_filters',
 ]
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
+
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -57,7 +62,7 @@ MIDDLEWARE = [
 ]
 
 # 🚨 ESTA ES LA CONFIGURACIÓN IMPORTANTE:
-CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",        # frontend local dev
     "http://127.0.0.1:3000",        # por si usas esta IP

@@ -7,13 +7,24 @@ from .models import (
     ElementoPortada,
     PaginaBasica,
     FuncionAdicional,
-    Mensual
+    Mensual,
+    Pais,
+    Beneficio, TipoBeneficio, PuntajeBeneficioProducto
 )
+
 
 @admin.register(Users)
 class UsersAdmin(admin.ModelAdmin):
-    list_display = ('name', 'email', 'tipoUser', 'seguridad')
-    search_fields = ('name', 'email')
+    list_display = ('id', 'name', 'email', 'get_pais', 'get_preguntas')
+    filter_horizontal = ('seguridad',)
+
+    def get_preguntas(self, obj):
+        return ", ".join([p.pregunta for p in obj.seguridad.all()])
+    get_preguntas.short_description = 'Preguntas de seguridad'
+
+    def get_pais(self, obj):
+        return obj.pais.nombre if obj.pais else '—'
+    get_pais.short_description = 'País'
 
 
 @admin.register(Tipouser)
@@ -60,3 +71,27 @@ class FuncionAdicionalAdmin(admin.ModelAdmin):
 class MensualAdmin(admin.ModelAdmin):
     list_display = ('producto', 'valor', 'precio')
     search_fields = ('producto__producto',)
+
+
+@admin.register(Pais)
+class PaisAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nombre', 'hora_trabajo', 'clasificacion')
+    search_fields = ('nombre', 'clasificacion')
+
+
+@admin.register(Beneficio)
+class BeneficioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'descripcion')
+
+
+@admin.register(TipoBeneficio)
+class TipoBeneficioAdmin(admin.ModelAdmin):
+    list_display = ('id', 'nombre', 'descripcion')
+    filter_horizontal = ('beneficios',)
+
+
+@admin.register(PuntajeBeneficioProducto)
+class PuntajeBeneficioProductoAdmin(admin.ModelAdmin):
+    list_display = ('id', 'producto', 'beneficio', 'categoria', 'puntaje')
+    list_filter = ('categoria', 'producto', 'beneficio')
+    search_fields = ('categoria', 'producto__name', 'beneficio__name')

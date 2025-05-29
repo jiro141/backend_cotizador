@@ -55,7 +55,7 @@ class MensualSerializer(serializers.ModelSerializer):
 class RespuestaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Respuesta
-        fields = ['id', 'texto']
+        fields = ['pregunta', 'texto']
 
 
 class PreguntaSerializer(serializers.ModelSerializer):
@@ -64,3 +64,43 @@ class PreguntaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Preguntas
         fields = ['id', 'pregunta', 'respuesta']
+
+
+class PaisSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pais
+        fields = '__all__'
+
+
+class BeneficioSerializer(serializers.ModelSerializer):
+    puntaje = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Beneficio
+        fields = ['id', 'name', 'descripcion', 'puntaje']
+
+    def get_puntaje(self, obj):
+        relaciones = PuntajeBeneficioProducto.objects.filter(beneficio=obj)
+        return [
+            {
+                "producto_id": rel.producto.id,
+                "puntaje": rel.puntaje
+            } for rel in relaciones
+        ]
+
+
+class TipoBeneficioSerializer(serializers.ModelSerializer):
+    beneficios = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Beneficio.objects.all()
+    )
+
+    class Meta:
+        model = TipoBeneficio
+        fields = ['id', 'nombre', 'descripcion', 'beneficios']
+
+
+class PuntajeBeneficioProductoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PuntajeBeneficioProducto
+        fields = '__all__'

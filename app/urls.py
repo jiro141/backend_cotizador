@@ -10,6 +10,9 @@ from .views import (
     FuncionAdicionalViewSet,
     MensualViewSet,
     RespuestaViewSet,
+    PaisViewSet,
+    BeneficioViewSet,
+    TipoBeneficioViewSet, PuntajeBeneficioProductoViewSet
 )
 
 router = DefaultRouter()
@@ -22,5 +25,9 @@ router.register(r'paginas-basicas', PaginaBasicaViewSet)
 router.register(r'funciones', FuncionAdicionalViewSet)
 router.register(r'mensuales', MensualViewSet)
 router.register(r'respuestas', RespuestaViewSet)
+router.register(r'paises', PaisViewSet)
+router.register(r'beneficios', BeneficioViewSet)
+router.register(r'tipo-beneficios', TipoBeneficioViewSet)
+router.register(r'puntaje-beneficio-producto', PuntajeBeneficioProductoViewSet)
 
 urlpatterns = router.urls

@@ -1,6 +1,8 @@
 from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
 from .models import *
 from .serializers import *
+from .filters import RespuestaFilter
 
 
 class UsersViewSet(viewsets.ModelViewSet):
@@ -51,3 +53,25 @@ class PreguntaViewSet(viewsets.ModelViewSet):
 class RespuestaViewSet(viewsets.ModelViewSet):
     queryset = Respuesta.objects.all()
     serializer_class = RespuestaSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = RespuestaFilter
+
+
+class PaisViewSet(viewsets.ModelViewSet):
+    queryset = Pais.objects.all()
+    serializer_class = PaisSerializer
+
+
+class BeneficioViewSet(viewsets.ModelViewSet):
+    queryset = Beneficio.objects.all()
+    serializer_class = BeneficioSerializer
+
+
+class TipoBeneficioViewSet(viewsets.ModelViewSet):
+    queryset = TipoBeneficio.objects.all()
+    serializer_class = TipoBeneficioSerializer
+
+
+class PuntajeBeneficioProductoViewSet(viewsets.ModelViewSet):
+    queryset = PuntajeBeneficioProducto.objects.all()
+    serializer_class = PuntajeBeneficioProductoSerializer
