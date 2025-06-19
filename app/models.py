@@ -7,10 +7,12 @@ class Producto(models.Model):
     valor = models.IntegerField()
     item = models.CharField(max_length=255, blank=True, null=True)
 
+    maxSecciones = models.IntegerField(default=0)
+    maxPaginas = models.IntegerField(default=0)
+
     paginas = models.ManyToManyField('PaginaBasica', blank=True)
     secciones = models.ManyToManyField('ElementoPortada', blank=True)
-    funciones_obligatorias = models.ManyToManyField(
-        'FuncionAdicional', blank=True)
+    funciones_obligatorias = models.ManyToManyField('FuncionAdicional', blank=True)
 
     def __str__(self):
         return self.producto
@@ -23,8 +25,10 @@ class ElementoPortada(models.Model):
     seccion = models.CharField(max_length=255)
     valor = models.IntegerField()
     beneficio = models.CharField(max_length=255)
-    productos = models.ManyToManyField(
-        Producto, related_name="elementos", blank=True)
+    productos = models.ManyToManyField(Producto, related_name="elementos", blank=True)
+
+    def __str__(self):
+        return self.seccion  # O puedes usar self.beneficio si es más descriptivo
 
     class Meta:
         db_table = 'elemento_portada'
@@ -33,8 +37,10 @@ class ElementoPortada(models.Model):
 class FuncionAdicional(models.Model):
     pagina_avanzada = models.CharField(max_length=255)
     valor = models.IntegerField()
-    productos = models.ManyToManyField(
-        Producto, related_name="funciones_adicionales", blank=True)
+    productos = models.ManyToManyField(Producto, related_name="funciones_adicionales", blank=True)
+
+    def __str__(self):
+        return self.pagina_avanzada
 
     class Meta:
         db_table = 'funcion_adicional'
@@ -43,21 +49,28 @@ class FuncionAdicional(models.Model):
 class PaginaBasica(models.Model):
     pagina = models.CharField(max_length=255)
     valor = models.IntegerField()
-    productos = models.ManyToManyField(
-        Producto, related_name="paginas_basicas", blank=True)
+    productos = models.ManyToManyField(Producto, related_name="paginas_basicas", blank=True)
+
+    def __str__(self):
+        return self.pagina
 
     class Meta:
         db_table = 'pagina_basica'
 
 
 class Mensual(models.Model):
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    producto = models.CharField(max_length=255)  # ← Ya no es ForeignKey
     valor = models.IntegerField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     descripcion = models.TextField(blank=True, null=True)
 
     class Meta:
         db_table = 'mensual'
+
+    def __str__(self):
+        return f"{self.producto} (${self.precio})"
+
+
 
 
 class Tipouser(models.Model):
@@ -123,12 +136,16 @@ class Users(models.Model):
 class Beneficio(models.Model):
     name = models.CharField(max_length=100)
     descripcion = models.TextField()
+    elementos_portada = models.ManyToManyField('ElementoPortada', related_name='beneficios', blank=True)
+    funciones_adicionales = models.ManyToManyField('FuncionAdicional', related_name='beneficios', blank=True)
+    paginas_basicas = models.ManyToManyField('PaginaBasica', related_name='beneficios', blank=True)
 
     def __str__(self):
         return self.name
 
     class Meta:
         db_table = 'beneficios'
+
 
 
 class TipoBeneficio(models.Model):
