@@ -7,10 +7,12 @@ class Producto(models.Model):
     valor = models.IntegerField()
     item = models.CharField(max_length=255, blank=True, null=True)
 
+    maxSecciones = models.IntegerField(default=0)
+    maxPaginas = models.IntegerField(default=0)
+
     paginas = models.ManyToManyField('PaginaBasica', blank=True)
     secciones = models.ManyToManyField('ElementoPortada', blank=True)
-    funciones_obligatorias = models.ManyToManyField(
-        'FuncionAdicional', blank=True)
+    funciones_obligatorias = models.ManyToManyField('FuncionAdicional', blank=True)
 
     def __str__(self):
         return self.producto
@@ -23,8 +25,10 @@ class ElementoPortada(models.Model):
     seccion = models.CharField(max_length=255)
     valor = models.IntegerField()
     beneficio = models.CharField(max_length=255)
-    productos = models.ManyToManyField(
-        Producto, related_name="elementos", blank=True)
+    productos = models.ManyToManyField(Producto, related_name="elementos", blank=True)
+
+    def __str__(self):
+        return self.seccion  # O puedes usar self.beneficio si es más descriptivo
 
     class Meta:
         db_table = 'elemento_portada'
@@ -33,8 +37,10 @@ class ElementoPortada(models.Model):
 class FuncionAdicional(models.Model):
     pagina_avanzada = models.CharField(max_length=255)
     valor = models.IntegerField()
-    productos = models.ManyToManyField(
-        Producto, related_name="funciones_adicionales", blank=True)
+    productos = models.ManyToManyField(Producto, related_name="funciones_adicionales", blank=True)
+
+    def __str__(self):
+        return self.pagina_avanzada
 
     class Meta:
         db_table = 'funcion_adicional'
@@ -43,8 +49,10 @@ class FuncionAdicional(models.Model):
 class PaginaBasica(models.Model):
     pagina = models.CharField(max_length=255)
     valor = models.IntegerField()
-    productos = models.ManyToManyField(
-        Producto, related_name="paginas_basicas", blank=True)
+    productos = models.ManyToManyField(Producto, related_name="paginas_basicas", blank=True)
+
+    def __str__(self):
+        return self.pagina
 
     class Meta:
         db_table = 'pagina_basica'
@@ -58,6 +66,7 @@ class Mensual(models.Model):
 
     class Meta:
         db_table = 'mensual'
+
 
 
 class Tipouser(models.Model):
@@ -101,7 +110,7 @@ class Pais(models.Model):
         return self.nombre
 
 
-class Users(models.Model):
+class CustomUser(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128, null=True, blank=True)

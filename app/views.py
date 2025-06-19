@@ -3,10 +3,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import *
 from .serializers import *
 from .filters import RespuestaFilter
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 
 class UsersViewSet(viewsets.ModelViewSet):
-    queryset = Users.objects.all()
+    queryset = CustomUser.objects.all()
     serializer_class = UsersSerializer
 
 
@@ -75,3 +78,39 @@ class TipoBeneficioViewSet(viewsets.ModelViewSet):
 class PuntajeBeneficioProductoViewSet(viewsets.ModelViewSet):
     queryset = PuntajeBeneficioProducto.objects.all()
     serializer_class = PuntajeBeneficioProductoSerializer
+
+
+class LoginView(APIView):
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        password = request.data.get('password', '')
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({"error": "Usuario no registrado."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Si el usuario existe y la contraseña es vacía o None
+        if not user.password:
+            if not password:
+                return Response({"message": "configure contraseña"}, status=status.HTTP_200_OK)
+            else:
+                user.password = password
+                user.save()
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                    'user_id': user.id,
+                    'email': user.email,
+                }, status=status.HTTP_200_OK)
+        else:
+            if user.password != password:
+                return Response({"error": "Contraseña incorrecta."}, status=status.HTTP_400_BAD_REQUEST)
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user_id': user.id,
+                'email': user.email,
+            }, status=status.HTTP_200_OK)
