@@ -149,4 +149,5 @@ class CustomLoginSerializer(serializers.Serializer):
             'access': str(refresh.access_token),
             'user_id': user.id,
             'email': user.email,
+            'tipouser': user.tipouser,
         }
