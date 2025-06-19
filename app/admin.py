@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Users,
+    CustomUser,
     Tipouser,
     Preguntas,
     Producto,
@@ -13,7 +13,7 @@ from .models import (
 )
 
 
-@admin.register(Users)
+@admin.register(CustomUser)
 class UsersAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'email', 'get_pais', 'get_preguntas')
     filter_horizontal = ('seguridad',)

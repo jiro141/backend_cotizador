@@ -73,6 +73,7 @@ class Mensual(models.Model):
 
 
 
+
 class Tipouser(models.Model):
     name = models.CharField(max_length=100)
 
@@ -114,7 +115,7 @@ class Pais(models.Model):
         return self.nombre
 
 
-class Users(models.Model):
+class CustomUser(models.Model):
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128, null=True, blank=True)
