@@ -2,9 +2,7 @@ from .models import Preguntas, Respuesta
 from rest_framework import serializers
 from .models import *
 from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import CustomUser
 from django.contrib.auth.hashers import make_password, check_password
 
 User = CustomUser
@@ -56,7 +54,6 @@ class MensualSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mensual
         fields = '__all__'
-        from rest_framework import serializers
 
 
 class RespuestaSerializer(serializers.ModelSerializer):
@@ -148,3 +145,18 @@ class CustomLoginSerializer(serializers.Serializer):
             'pais_id': user.pais_id,
             'pais': user.pais.nombre if user.pais else None,
         }
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetVerifySerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token1 = serializers.CharField()
+
+
+class PasswordResetChangeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token2 = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
