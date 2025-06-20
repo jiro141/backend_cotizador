@@ -131,17 +131,11 @@ class CustomLoginSerializer(serializers.Serializer):
             if not password:
                 raise serializers.ValidationError("configure contraseña")
             else:
-                # Guardar la contraseña hasheada
                 user.password = make_password(password)
                 user.save()
         else:
-            # Validar contraseña usando check_password
             if not check_password(password, user.password):
                 raise serializers.ValidationError("Contraseña incorrecta.")
-
-        # El campo is_active no existe en tu modelo. Si lo necesitas, agrégalo.
-        # if not user.is_active:
-        #     raise serializers.ValidationError("Cuenta inactiva.")
 
         refresh = RefreshToken.for_user(user)
         return {
@@ -149,4 +143,8 @@ class CustomLoginSerializer(serializers.Serializer):
             'access': str(refresh.access_token),
             'user_id': user.id,
             'email': user.email,
+            'tipouser_id': user.tipoUser_id,
+            'tipouser': user.tipoUser.nombre if user.tipoUser else None,
+            'pais_id': user.pais_id,
+            'pais': user.pais.nombre if user.pais else None,
         }
