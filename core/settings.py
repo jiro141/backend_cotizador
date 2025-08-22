@@ -13,8 +13,11 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from corsheaders.defaults import default_headers
 import os
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
@@ -27,12 +30,9 @@ SECRET_KEY = 'django-insecure-q3!o1#$1u)($dj983*cck46_)9v85#m@_&tccj1-d0(iiy+o08
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1','detipcompany141.pythonanywhere.com']
-CORS_ALLOW_ALL_ORIGINS = True
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'detipcompany141.pythonanywhere.com']
 
 # Application definition
-
-# settings.py
 
 INSTALLED_APPS = [
     "corsheaders",
@@ -44,9 +44,10 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "app",
-    'django_filters',
-    'rest_framework_simplejwt',
+    "django_filters",
+    "rest_framework_simplejwt",
 ]
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -56,7 +57,14 @@ REST_FRAMEWORK = {
     ],
 }
 
-
+# EMAIL CONFIGURACIÓN PARA PRODUCCIÓN CON HOSTINGER (SSL)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.hostinger.com'
+EMAIL_PORT = 465
+EMAIL_HOST_USER = 'info@detipcompany.com'
+EMAIL_HOST_PASSWORD = 'Felipe.7361697'   # ⚠️ ¡Cámbiala por una variable de entorno en producción!
+EMAIL_USE_SSL = True
+DEFAULT_FROM_EMAIL = 'info@detipcompany.com'
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -69,19 +77,17 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# 🚨 ESTA ES LA CONFIGURACIÓN IMPORTANTE:
-
+# CORS CONFIGURACIÓN PARA DEV
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",        # frontend local dev
     "http://127.0.0.1:3000",        # por si usas esta IP
 ]
+CORS_ALLOW_ALL_ORIGINS = True  # ⚠️ Solo para desarrollo local, no producción
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
     'access-control-allow-origin',
 ]
-
 CORS_ALLOW_METHODS = ["*"]
-
 
 ROOT_URLCONF = 'core.urls'
 
@@ -102,10 +108,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -113,10 +116,7 @@ DATABASES = {
     }
 }
 
-
 # Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -132,25 +132,11 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
-
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
+LANGUAGE_CODE = 'es-ve'  # Cambia a 'es-co' o 'es-es' si tu público es hispano
+TIME_ZONE = 'America/Caracas'    # Cambia a 'America/Bogota' o tu zona
 
 USE_I18N = True
-
 USE_TZ = True
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
-
-STATIC_URL = 'static/'
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

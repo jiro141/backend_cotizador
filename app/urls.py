@@ -17,8 +17,16 @@ router.register(r'beneficios', BeneficioViewSet)
 router.register(r'tipo-beneficios', TipoBeneficioViewSet)
 router.register(r'puntaje-beneficio-producto', PuntajeBeneficioProductoViewSet)
 
+
 urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='login'),
+
+    path('password-reset/', PasswordResetRequestView.as_view(),
+         name='password-reset'),
+    path('password-reset/verify/', PasswordResetVerifyView.as_view(),
+         name='password-reset-verify'),
+    path('password-reset/change/', PasswordResetChangeView.as_view(),
+         name='password-reset-change'),
 ]
 
 # ✅ Importante: agregar rutas del router
