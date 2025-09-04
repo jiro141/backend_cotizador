@@ -1,12 +1,17 @@
-from .models import Preguntas, Respuesta
-from rest_framework import serializers
-from .models import *
-from django.contrib.auth import get_user_model
-from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.hashers import make_password, check_password
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken
 
-User = CustomUser
+from .models import (
+    CustomUser, Tipouser, Preguntas, Respuesta, Producto,
+    ElementoPortada, PaginaBasica, FuncionAdicional, Mensual,
+    Pais, Beneficio, TipoBeneficio, PuntajeBeneficioProducto
+)
 
+
+# ============================
+# Serializers de modelos base
+# ============================
 
 class UsersSerializer(serializers.ModelSerializer):
     class Meta:
@@ -110,10 +115,15 @@ class PuntajeBeneficioProductoSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+# ============================
+# Serializers para autenticación
+# ============================
+
 class CustomLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(
-        write_only=True, allow_blank=True, required=False, allow_null=True)
+        write_only=True, allow_blank=True, required=False, allow_null=True
+    )
 
     def validate(self, data):
         email = data['email'].strip().lower()
@@ -124,6 +134,7 @@ class CustomLoginSerializer(serializers.Serializer):
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("Usuario no registrado.")
 
+        # Si no tiene contraseña asignada
         if not user.password:
             if not password:
                 raise serializers.ValidationError("configure contraseña")
@@ -147,6 +158,10 @@ class CustomLoginSerializer(serializers.Serializer):
         }
 
 
+# ============================
+# Serializers para reset de contraseña
+# ============================
+
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
@@ -160,3 +175,12 @@ class PasswordResetChangeSerializer(serializers.Serializer):
     email = serializers.EmailField()
     token2 = serializers.CharField()
     new_password = serializers.CharField(min_length=8)
+
+
+# ============================
+# Serializer para Google Docs
+# ============================
+
+class DocumentoSerializer(serializers.Serializer):
+    contenido = serializers.CharField()
+    correo = serializers.EmailField()
