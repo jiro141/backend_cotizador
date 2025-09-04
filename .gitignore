@@ -40,3 +40,4 @@ import_csv.py
 *.crt
 *.key
 credenciales.json
+credenciales.json
