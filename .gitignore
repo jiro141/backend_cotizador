@@ -39,3 +39,4 @@ import_csv.py
 *.pem
 *.crt
 *.key
+credenciales.json
