@@ -210,3 +210,15 @@ class PasswordResetToken(models.Model):
             self.token2_expires_at and
             self.token2_expires_at > timezone.now()
         )
+        
+class Documento(models.Model):
+    document_id = models.CharField(max_length=255, primary_key=True)  # 🔑 PK
+    usuario = models.ForeignKey('CustomUser', on_delete=models.CASCADE, related_name="documentos_creados")
+    correo_compartido = models.EmailField()
+    cliente = models.CharField(max_length=255)
+    empresa = models.CharField(max_length=255)
+    link = models.URLField()
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Doc {self.document_id} - Cliente: {self.cliente} - Empresa: {self.empresa}"

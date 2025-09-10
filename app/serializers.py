@@ -5,7 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import (
     CustomUser, Tipouser, Preguntas, Respuesta, Producto,
     ElementoPortada, PaginaBasica, FuncionAdicional, Mensual,
-    Pais, Beneficio, TipoBeneficio, PuntajeBeneficioProducto
+    Pais, Beneficio, TipoBeneficio, PuntajeBeneficioProducto,Documento
 )
 
 
@@ -184,3 +184,19 @@ class PasswordResetChangeSerializer(serializers.Serializer):
 class DocumentoSerializer(serializers.Serializer):
     contenido = serializers.CharField()
     correo = serializers.EmailField()
+
+class DocumentoSerializer(serializers.ModelSerializer):
+    usuario_name = serializers.CharField(source="usuario.name", read_only=True)
+
+    class Meta:
+        model = Documento
+        fields = [
+            "document_id",
+            "usuario",
+            "usuario_name",
+            "correo_compartido",
+            "cliente",
+            "empresa",
+            "link",
+            "fecha_creacion",
+        ]

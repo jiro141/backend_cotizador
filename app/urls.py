@@ -6,7 +6,7 @@ from .views import (
     MensualViewSet, RespuestaViewSet, PaisViewSet, BeneficioViewSet,
     TipoBeneficioViewSet, PuntajeBeneficioProductoViewSet,
     LoginView, PasswordResetRequestView, PasswordResetVerifyView,
-    PasswordResetChangeView, authorize, oauth2callback, create_doc
+    PasswordResetChangeView, authorize, oauth2callback, create_doc,DocumentoViewSet
 )
 
 # ============================
@@ -26,6 +26,7 @@ router.register(r'paises', PaisViewSet)
 router.register(r'beneficios', BeneficioViewSet)
 router.register(r'tipo-beneficios', TipoBeneficioViewSet)
 router.register(r'puntaje-beneficio-producto', PuntajeBeneficioProductoViewSet)
+router.register(r'documentos', DocumentoViewSet, basename="documentos")
 
 # ============================
 # URL patterns

@@ -8,7 +8,7 @@ from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
 
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets,filters
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -265,7 +265,7 @@ def oauth2callback(request):
 
 @csrf_exempt
 def create_doc(request):
-    """Crea un Google Doc en el Drive estático y lo comparte con el correo indicado"""
+    """Crea un Google Doc en el Drive y lo guarda en BD"""
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
 
@@ -276,9 +276,11 @@ def create_doc(request):
 
     contenido = body.get("contenido")
     correo = body.get("correo")
+    cliente = body.get("cliente")
+    empresa = body.get("empresa")
 
-    if not contenido or not correo:
-        return JsonResponse({"error": "Faltan campos: contenido o correo"}, status=400)
+    if not contenido or not correo or not cliente or not empresa:
+        return JsonResponse({"error": "Faltan campos: contenido, correo, cliente o empresa"}, status=400)
 
     if not os.path.exists(TOKEN_FILE):
         return JsonResponse({"error": "Cuenta de Google no autenticada"}, status=401)
@@ -288,7 +290,7 @@ def create_doc(request):
         service_drive = build("drive", "v3", credentials=creds)
         service_docs = build("docs", "v1", credentials=creds)
 
-        # Crear documento vacío en Drive
+        # Crear documento en Drive
         file_metadata = {
             "name": "Documento Django API",
             "mimeType": "application/vnd.google-apps.document"
@@ -296,24 +298,34 @@ def create_doc(request):
         file = service_drive.files().create(body=file_metadata, fields="id").execute()
         doc_id = file.get("id")
 
-        # Escribir contenido
+        # Insertar contenido
         service_docs.documents().batchUpdate(
             documentId=doc_id,
-            body={
-                "requests": [
-                    {"insertText": {"location": {"index": 1}, "text": contenido}}
-                ]
-            }
+            body={"requests": [{"insertText": {"location": {"index": 1}, "text": contenido}}]}
         ).execute()
 
-        # Compartir el documento
+        # Compartir documento con el correo indicado
         permission = {"type": "user", "role": "writer", "emailAddress": correo}
         service_drive.permissions().create(fileId=doc_id, body=permission).execute()
 
+        # Guardar en base de datos
+        documento = Documento.objects.create(
+            document_id=doc_id,   # PK
+            usuario=request.user,
+            correo_compartido=correo,
+            cliente=cliente,
+            empresa=empresa,
+            contenido=contenido,
+            link=f"https://docs.google.com/document/d/{doc_id}/edit"
+        )
+
         return JsonResponse({
             "status": "ok",
-            "documentId": doc_id,
-            "link": f"https://docs.google.com/document/d/{doc_id}/edit"
+            "documentId": documento.document_id,
+            "link": documento.link,
+            "cliente": documento.cliente,
+            "empresa": documento.empresa,
+            "fecha_creacion": documento.fecha_creacion.isoformat()
         })
 
     except HttpError as e:
@@ -326,3 +338,11 @@ def create_doc(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+class DocumentoViewSet(viewsets.ModelViewSet):
+    queryset = Documento.objects.all().order_by("-fecha_creacion")
+    serializer_class = DocumentoSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ["cliente", "empresa", "usuario__name"]  # 🔎 búsqueda dinámica
+    ordering_fields = ["fecha_creacion", "cliente", "empresa"]
