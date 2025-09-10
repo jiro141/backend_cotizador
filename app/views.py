@@ -1,15 +1,24 @@
+import os
+import json
 from datetime import timedelta
 
-from django.contrib.auth.hashers import make_password
-from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
+from django.http import JsonResponse, HttpResponseRedirect
+from django.views.decorators.csrf import csrf_exempt
+
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import Flow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 from .filters import RespuestaFilter
-from .google_docs_service import crear_doc_y_compartir
 from .models import *
 from .serializers import *
 from .utils import generate_token1, generate_token2, send_reset_email
@@ -59,11 +68,6 @@ class MensualViewSet(viewsets.ModelViewSet):
     serializer_class = MensualSerializer
 
 
-class PreguntaViewSet(viewsets.ModelViewSet):
-    queryset = Preguntas.objects.all()
-    serializer_class = PreguntaSerializer
-
-
 class RespuestaViewSet(viewsets.ModelViewSet):
     queryset = Respuesta.objects.all()
     serializer_class = RespuestaSerializer
@@ -105,12 +109,12 @@ class LoginView(APIView):
         except CustomUser.DoesNotExist:
             return Response({"error": "Usuario no registrado."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Si el usuario existe y no tiene contraseña configurada
+        # Usuario sin contraseña configurada
         if not user.password:
             if not password:
-                return Response({"message": "configure contraseña"}, status=status.HTTP_200_OK)
+                return Response({"message": "Configure su contraseña"}, status=status.HTTP_200_OK)
             else:
-                user.password = password  # ⚠️ Mejor usar make_password aquí
+                user.password = make_password(password)
                 user.save()
                 refresh = RefreshToken.for_user(user)
                 return Response({
@@ -121,7 +125,7 @@ class LoginView(APIView):
                 }, status=status.HTTP_200_OK)
 
         # Validar contraseña
-        if user.password != password:  # ⚠️ Mejor usar check_password aquí
+        if not check_password(password, user.password):
             return Response({"error": "Contraseña incorrecta."}, status=status.HTTP_400_BAD_REQUEST)
 
         refresh = RefreshToken.for_user(user)
@@ -139,7 +143,6 @@ class LoginView(APIView):
 # Flujo de recuperación de contraseña
 # ============================
 
-# Paso 1: Solicitar recuperación (envía token1)
 class PasswordResetRequestView(APIView):
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -151,7 +154,6 @@ class PasswordResetRequestView(APIView):
         except CustomUser.DoesNotExist:
             return Response({"message": "Si el correo existe, recibirás instrucciones."}, status=status.HTTP_200_OK)
 
-        # Elimina tokens antiguos no usados
         PasswordResetToken.objects.filter(user=user, used=False).delete()
 
         token1 = generate_token1()
@@ -167,7 +169,6 @@ class PasswordResetRequestView(APIView):
         return Response({"message": "Si el correo existe, recibirás instrucciones."}, status=status.HTTP_200_OK)
 
 
-# Paso 2: Verificar token1 y recibir token2
 class PasswordResetVerifyView(APIView):
     def post(self, request):
         serializer = PasswordResetVerifySerializer(data=request.data)
@@ -194,7 +195,6 @@ class PasswordResetVerifyView(APIView):
         return Response({"token2": token2}, status=status.HTTP_200_OK)
 
 
-# Paso 3: Cambiar la contraseña con token2
 class PasswordResetChangeView(APIView):
     def post(self, request):
         serializer = PasswordResetChangeSerializer(data=request.data)
@@ -226,19 +226,103 @@ class PasswordResetChangeView(APIView):
 # Integración con Google Docs
 # ============================
 
-class CrearDocumentoView(APIView):
-    def post(self, request):
-        contenido = request.data.get("contenido")
-        correo = request.data.get("correo")
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+GOOGLE_CLIENT_SECRET_FILE = os.path.join(BASE_DIR, "credentials.json")
+TOKEN_FILE = os.path.join(BASE_DIR, "token.json")
 
-        if not contenido or not correo:
-            return Response({"error": "Faltan campos: contenido o correo"}, status=status.HTTP_400_BAD_REQUEST)
+SCOPES = [
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/documents"
+]
 
-        try:
-            link = crear_doc_y_compartir(contenido, correo)
-            return Response(
-                {"mensaje": "Documento creado y compartido", "link": link},
-                status=status.HTTP_201_CREATED
+
+def authorize(request):
+    """Redirige al login de Google para autorizar la app"""
+    flow = Flow.from_client_secrets_file(
+        GOOGLE_CLIENT_SECRET_FILE,
+        scopes=SCOPES,
+        redirect_uri="http://127.0.0.1:8000/api/oauth2callback"
+    )
+    auth_url, _ = flow.authorization_url(prompt="consent")
+    return HttpResponseRedirect(auth_url)
+
+
+def oauth2callback(request):
+    """Callback de Google OAuth2: guarda el token de acceso"""
+    flow = Flow.from_client_secrets_file(
+        GOOGLE_CLIENT_SECRET_FILE,
+        scopes=SCOPES,
+        redirect_uri="http://127.0.0.1:8000/api/oauth2callback"
+    )
+    flow.fetch_token(authorization_response=request.build_absolute_uri())
+
+    creds = flow.credentials
+    with open(TOKEN_FILE, "w") as token:
+        token.write(creds.to_json())
+
+    return JsonResponse({"status": "ok", "message": "Autenticado con Google 🚀"})
+
+
+@csrf_exempt
+def create_doc(request):
+    """Crea un Google Doc en el Drive estático y lo comparte con el correo indicado"""
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
+
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "JSON inválido"}, status=400)
+
+    contenido = body.get("contenido")
+    correo = body.get("correo")
+
+    if not contenido or not correo:
+        return JsonResponse({"error": "Faltan campos: contenido o correo"}, status=400)
+
+    if not os.path.exists(TOKEN_FILE):
+        return JsonResponse({"error": "Cuenta de Google no autenticada"}, status=401)
+
+    try:
+        creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        service_drive = build("drive", "v3", credentials=creds)
+        service_docs = build("docs", "v1", credentials=creds)
+
+        # Crear documento vacío en Drive
+        file_metadata = {
+            "name": "Documento Django API",
+            "mimeType": "application/vnd.google-apps.document"
+        }
+        file = service_drive.files().create(body=file_metadata, fields="id").execute()
+        doc_id = file.get("id")
+
+        # Escribir contenido
+        service_docs.documents().batchUpdate(
+            documentId=doc_id,
+            body={
+                "requests": [
+                    {"insertText": {"location": {"index": 1}, "text": contenido}}
+                ]
+            }
+        ).execute()
+
+        # Compartir el documento
+        permission = {"type": "user", "role": "writer", "emailAddress": correo}
+        service_drive.permissions().create(fileId=doc_id, body=permission).execute()
+
+        return JsonResponse({
+            "status": "ok",
+            "documentId": doc_id,
+            "link": f"https://docs.google.com/document/d/{doc_id}/edit"
+        })
+
+    except HttpError as e:
+        if e.resp.status == 403 and "storageQuotaExceeded" in str(e):
+            return JsonResponse(
+                {"error": "La cuenta de Google Drive se quedó sin espacio de almacenamiento."},
+                status=403
             )
-        except Exception as e:
-            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return JsonResponse({"error": f"Error de Google API: {e}"}, status=500)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

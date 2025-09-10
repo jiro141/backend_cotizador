@@ -6,7 +6,7 @@ from .views import (
     MensualViewSet, RespuestaViewSet, PaisViewSet, BeneficioViewSet,
     TipoBeneficioViewSet, PuntajeBeneficioProductoViewSet,
     LoginView, PasswordResetRequestView, PasswordResetVerifyView,
-    PasswordResetChangeView, CrearDocumentoView
+    PasswordResetChangeView, authorize, oauth2callback, create_doc
 )
 
 # ============================
@@ -40,7 +40,9 @@ urlpatterns = [
     path('password-reset/change/', PasswordResetChangeView.as_view(), name='password-reset-change'),
 
     # Google Docs
-    path('crear-doc/', CrearDocumentoView.as_view(), name='crear-doc'),
+    path('authorize/', authorize, name='authorize'),
+    path('oauth2callback/', oauth2callback, name='oauth2callback'),
+    path('create-doc/', create_doc, name='create-doc'),
 
     # Router con todos los modelos
     path('', include(router.urls)),

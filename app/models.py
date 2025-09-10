@@ -1,7 +1,17 @@
 from django.db import models
 from django.utils import timezone
 from uuid import uuid4
+from django.conf import settings
 
+class GoogleToken(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    token_json = models.TextField()  # Guardamos el JSON completo del token
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Token Google de {self.user.email}"
+    
 class Producto(models.Model):
     producto = models.CharField(max_length=255)
     descripcion = models.TextField(blank=True, null=True)

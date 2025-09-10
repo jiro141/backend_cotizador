@@ -41,3 +41,6 @@ import_csv.py
 *.key
 credenciales.json
 credenciales.json
+credentials.json
+auth_credentials.json
+token.json
