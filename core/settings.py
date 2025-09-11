@@ -144,3 +144,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Permitir transporte inseguro (solo en desarrollo local con DEBUG=True)
 if DEBUG:
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    
+# 🔑 Indicarle a Django que use CustomUser como modelo principal de usuario
+AUTH_USER_MODEL = "app.CustomUser"
+

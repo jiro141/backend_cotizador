@@ -129,24 +129,87 @@ class Pais(models.Model):
         return self.nombre
 
 
-class CustomUser(models.Model):
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+
+
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        """Crear y guardar un usuario normal"""
+        if not email:
+            raise ValueError("El email es obligatorio")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)  # 🔑 encripta la contraseña
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        """Crear y guardar un superusuario"""
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser debe tener is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser debe tener is_superuser=True.")
+
+        return self.create_user(email, password, **extra_fields)
+
+class CustomUser(AbstractBaseUser, PermissionsMixin):
+    # Datos básicos
     name = models.CharField(max_length=100)
     email = models.EmailField(unique=True)
     password = models.CharField(max_length=128, null=True, blank=True)
 
+    # Relaciones con tus modelos
     tipoUser = models.ForeignKey(
-        Tipouser, on_delete=models.SET_NULL, null=True, blank=True
+        "Tipouser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
     )
-
     seguridad = models.ManyToManyField(
-        Preguntas, blank=True, related_name='usuarios'
+        "Preguntas",
+        blank=True,
+        related_name="usuarios"
     )
     pais = models.ForeignKey(
-        Pais, on_delete=models.SET_NULL, null=True, blank=True)
+        "Pais",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    # Permisos y administración
+    is_staff = models.BooleanField(default=False)      # Puede entrar al admin
+    is_superuser = models.BooleanField(default=False)  # Tiene todos los permisos
+    is_active = models.BooleanField(default=True)      # Está activo
+    date_joined = models.DateTimeField(default=timezone.now)
+
+    # Configuración de login
+    USERNAME_FIELD = "email"          # 🔑 Login será con email
+    REQUIRED_FIELDS = ["name"]        # Campos obligatorios al crear superuser
+
+    objects = CustomUserManager()
 
     class Meta:
-        db_table = 'users'
+        db_table = "users"
 
+    def __str__(self):
+        return self.email
+
+    # 🔹 Validación extra para evitar errores de integridad
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        from app.models import Pais, Tipouser
+
+        if self.pais_id and not Pais.objects.filter(id=self.pais_id).exists():
+            raise ValidationError({"pais": "El país seleccionado no existe."})
+
+        if self.tipoUser_id and not Tipouser.objects.filter(id=self.tipoUser_id).exists():
+            raise ValidationError({"tipoUser": "El tipo de usuario seleccionado no existe."})
 
 class Beneficio(models.Model):
     name = models.CharField(max_length=100)

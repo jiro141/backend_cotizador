@@ -6,7 +6,8 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponseRedirect
 from django.views.decorators.csrf import csrf_exempt
-
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets,filters
 from rest_framework.response import Response
@@ -98,7 +99,6 @@ class PuntajeBeneficioProductoViewSet(viewsets.ModelViewSet):
 # ============================
 # Autenticación y login
 # ============================
-
 class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
@@ -112,32 +112,44 @@ class LoginView(APIView):
         # Usuario sin contraseña configurada
         if not user.password:
             if not password:
-                return Response({"message": "Configure su contraseña"}, status=status.HTTP_200_OK)
+                return Response({
+                    "message": "Configure su contraseña",
+                    "requiresPasswordSetup": True,
+                    "user": {
+                        "id": user.id,
+                        "email": user.email,
+                        "requiresPasswordSetup": True,
+                        "tipouser_id": user.tipoUser_id,
+                        "pais_id": user.pais_id,
+                        "user_id": user.id,
+                    }
+                }, status=status.HTTP_202_ACCEPTED)
             else:
+                # ✅ Guardar la contraseña de forma segura
                 user.password = make_password(password)
                 user.save()
                 refresh = RefreshToken.for_user(user)
                 return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'user_id': user.id,
-                    'email': user.email,
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "user_id": user.id,
+                    "email": user.email,
                 }, status=status.HTTP_200_OK)
 
         # Validar contraseña
         if not check_password(password, user.password):
             return Response({"error": "Contraseña incorrecta."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Login exitoso
         refresh = RefreshToken.for_user(user)
         return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user_id': user.id,
-            'email': user.email,
-            'tipouser_id': user.tipoUser_id,
-            'pais_id': user.pais_id,
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
+            "user_id": user.id,
+            "email": user.email,
+            "tipouser_id": user.tipoUser_id,
+            "pais_id": user.pais_id,
         }, status=status.HTTP_200_OK)
-
 
 # ============================
 # Flujo de recuperación de contraseña
@@ -263,16 +275,15 @@ def oauth2callback(request):
     return JsonResponse({"status": "ok", "message": "Autenticado con Google 🚀"})
 
 
-@csrf_exempt
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])  # ✅ fuerza autenticación con JWT
 def create_doc(request):
     """Crea un Google Doc en el Drive y lo guarda en BD"""
-    if request.method != "POST":
-        return JsonResponse({"error": "Método no permitido"}, status=405)
 
     try:
-        body = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "JSON inválido"}, status=400)
+        body = request.data
+    except Exception:
+        return Response({"error": "JSON inválido"}, status=status.HTTP_400_BAD_REQUEST)
 
     contenido = body.get("contenido")
     correo = body.get("correo")
@@ -280,10 +291,16 @@ def create_doc(request):
     empresa = body.get("empresa")
 
     if not contenido or not correo or not cliente or not empresa:
-        return JsonResponse({"error": "Faltan campos: contenido, correo, cliente o empresa"}, status=400)
+        return Response(
+            {"error": "Faltan campos: contenido, correo, cliente o empresa"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     if not os.path.exists(TOKEN_FILE):
-        return JsonResponse({"error": "Cuenta de Google no autenticada"}, status=401)
+        return Response(
+            {"error": "Cuenta de Google no autenticada"},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
 
     try:
         creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
@@ -308,37 +325,35 @@ def create_doc(request):
         permission = {"type": "user", "role": "writer", "emailAddress": correo}
         service_drive.permissions().create(fileId=doc_id, body=permission).execute()
 
-        # Guardar en base de datos
+        # Guardar en base de datos con el usuario autenticado
         documento = Documento.objects.create(
-            document_id=doc_id,   # PK
-            usuario=request.user,
+            document_id=doc_id,
+            usuario=request.user,  # ✅ ahora es un CustomUser gracias a JWT
             correo_compartido=correo,
             cliente=cliente,
             empresa=empresa,
-            contenido=contenido,
             link=f"https://docs.google.com/document/d/{doc_id}/edit"
         )
 
-        return JsonResponse({
+        return Response({
             "status": "ok",
             "documentId": documento.document_id,
             "link": documento.link,
             "cliente": documento.cliente,
             "empresa": documento.empresa,
             "fecha_creacion": documento.fecha_creacion.isoformat()
-        })
+        }, status=status.HTTP_201_CREATED)
 
     except HttpError as e:
         if e.resp.status == 403 and "storageQuotaExceeded" in str(e):
-            return JsonResponse(
+            return Response(
                 {"error": "La cuenta de Google Drive se quedó sin espacio de almacenamiento."},
-                status=403
+                status=status.HTTP_403_FORBIDDEN
             )
-        return JsonResponse({"error": f"Error de Google API: {e}"}, status=500)
+        return Response({"error": f"Error de Google API: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DocumentoViewSet(viewsets.ModelViewSet):
     queryset = Documento.objects.all().order_by("-fecha_creacion")
