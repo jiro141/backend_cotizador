@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from corsheaders.defaults import default_headers
+from datetime import timedelta
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -148,3 +149,10 @@ if DEBUG:
 # 🔑 Indicarle a Django que use CustomUser como modelo principal de usuario
 AUTH_USER_MODEL = "app.CustomUser"
 
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=2),   # duración del access token (ej: 2 horas)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),   # duración del refresh token (ej: 7 días)
+    "ROTATE_REFRESH_TOKENS": False,                # genera un nuevo refresh al usarlo
+    "BLACKLIST_AFTER_ROTATION": True,              # invalida el refresh usado si lo rotas
+    "UPDATE_LAST_LOGIN": True,
+}
