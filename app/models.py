@@ -282,6 +282,7 @@ class Documento(models.Model):
     empresa = models.CharField(max_length=255)
     link = models.URLField()
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    monto = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)  # 💰 Nuevo campo
 
     def __str__(self):
-        return f"Doc {self.document_id} - Cliente: {self.cliente} - Empresa: {self.empresa}"
+        return f"Doc {self.document_id} - Cliente: {self.cliente} - Empresa: {self.empresa} - Monto: {self.monto}"

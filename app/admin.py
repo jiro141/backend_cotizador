@@ -8,7 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from .models import (
     CustomUser, Tipouser, Preguntas, Producto, ElementoPortada, PaginaBasica,
     FuncionAdicional, Mensual, Pais, Beneficio, TipoBeneficio,
-    PuntajeBeneficioProducto, Documento, GoogleToken, PasswordResetToken
+    PuntajeBeneficioProducto, Documento, GoogleToken, PasswordResetToken, 
 )
 
 # =====================
@@ -184,3 +184,11 @@ class PuntajeBeneficioProductoAdmin(admin.ModelAdmin):
     list_display = ("id", "producto", "beneficio", "categoria", "puntaje")
     list_filter = ("categoria", "producto", "beneficio")
     search_fields = ("categoria", "producto__producto", "beneficio__name")
+    
+    
+@admin.register(Documento)
+class DocumentoAdmin(admin.ModelAdmin):
+    list_display = ( "cliente", "empresa", "usuario", "monto", "fecha_creacion","link")
+    search_fields = ("cliente", "empresa", "correo_compartido")
+    list_filter = ("empresa", "fecha_creacion")
+    ordering = ("-fecha_creacion",)
