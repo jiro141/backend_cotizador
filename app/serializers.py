@@ -190,13 +190,4 @@ class DocumentoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Documento
-        fields = [
-            "document_id",
-            "usuario",
-            "usuario_name",
-            "correo_compartido",
-            "cliente",
-            "empresa",
-            "link",
-            "fecha_creacion",
-        ]
+        fields = '__all__'
