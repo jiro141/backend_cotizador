@@ -186,8 +186,16 @@ class DocumentoSerializer(serializers.Serializer):
     correo = serializers.EmailField()
 
 class DocumentoSerializer(serializers.ModelSerializer):
-    usuario_name = serializers.CharField(source="usuario.name", read_only=True)
-
     class Meta:
         model = Documento
-        fields = '__all__'
+        fields = [
+            "document_id",
+            "usuario",
+            "correo_compartido",
+            "cliente",
+            "empresa",
+            "link",
+            "fecha_creacion",
+            "monto",   # 👈 importante incluirlo
+        ]
+        read_only_fields = ["fecha_creacion"]
