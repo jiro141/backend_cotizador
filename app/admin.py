@@ -6,10 +6,23 @@ from django.db import transaction, IntegrityError
 from django.utils.translation import gettext_lazy as _
 
 from .models import (
-    CustomUser, Tipouser, Preguntas, Producto, ElementoPortada, PaginaBasica,
-    FuncionAdicional, Mensual, Pais, Beneficio, TipoBeneficio,
-    PuntajeBeneficioProducto, Documento, GoogleToken, PasswordResetToken, 
+    CustomUser,
+    Tipouser,
+    Preguntas,
+    Producto,
+    ElementoPortada,
+    PaginaBasica,
+    FuncionAdicional,
+    Mensual,
+    Pais,
+    Beneficio,
+    TipoBeneficio,
+    PuntajeBeneficioProducto,
+    Documento,
+    GoogleToken,
+    PasswordResetToken,
 )
+
 
 # =====================
 # 🔹 Formularios de usuario
@@ -34,7 +47,9 @@ class CustomUserChangeForm(UserChangeForm):
             raise forms.ValidationError({"pais": "⚠️ El país seleccionado no existe."})
 
         if tipoUser and not Tipouser.objects.filter(id=tipoUser.id).exists():
-            raise forms.ValidationError({"tipoUser": "⚠️ El tipo de usuario seleccionado no existe."})
+            raise forms.ValidationError(
+                {"tipoUser": "⚠️ El tipo de usuario seleccionado no existe."}
+            )
 
         return cleaned_data
 
@@ -65,7 +80,16 @@ class UsersAdmin(BaseUserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
 
-    list_display = ("id", "name", "email", "get_pais", "get_tipoUser", "get_preguntas", "is_active", "is_staff")
+    list_display = (
+        "id",
+        "name",
+        "email",
+        "get_pais",
+        "get_tipoUser",
+        "get_preguntas",
+        "is_active",
+        "is_staff",
+    )
     list_filter = ("pais", "tipoUser", "is_active", "is_staff")
     search_fields = ("email", "name")
     ordering = ("id",)
@@ -73,16 +97,40 @@ class UsersAdmin(BaseUserAdmin):
 
     fieldsets = (
         (None, {"fields": ("email", "name", "password")}),
-        (_("Permisos"), {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
+        (
+            _("Permisos"),
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                )
+            },
+        ),
         (_("Fechas"), {"fields": ("date_joined",)}),
         (_("Relaciones"), {"fields": ("tipoUser", "pais", "seguridad")}),
     )
 
     add_fieldsets = (
-        (None, {
-            "classes": ("wide",),
-            "fields": ("email", "name", "password1", "password2", "tipoUser", "pais", "is_active", "is_staff", "is_superuser"),
-        }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": (
+                    "email",
+                    "name",
+                    "password1",
+                    "password2",
+                    "tipoUser",
+                    "pais",
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                ),
+            },
+        ),
     )
 
     inlines = [DocumentoInline, GoogleTokenInline, PasswordResetTokenInline]
@@ -96,20 +144,23 @@ class UsersAdmin(BaseUserAdmin):
             self.message_user(
                 request,
                 "⚠️ Algunas relaciones inválidas fueron ignoradas al guardar este usuario.",
-                level="warning"
+                level="warning",
             )
 
     # Helpers para mostrar datos relacionados
     def get_preguntas(self, obj):
         return ", ".join([p.pregunta for p in obj.seguridad.all()])
+
     get_preguntas.short_description = "Preguntas de seguridad"
 
     def get_pais(self, obj):
         return obj.pais.nombre if obj.pais else "—"
+
     get_pais.short_description = "País"
 
     def get_tipoUser(self, obj):
         return obj.tipoUser.name if obj.tipoUser else "—"
+
     get_tipoUser.short_description = "Tipo de usuario"
 
 
@@ -170,7 +221,63 @@ class PaisAdmin(admin.ModelAdmin):
 
 @admin.register(Beneficio)
 class BeneficioAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "descripcion")
+    list_display = (
+        "id",
+        "name",
+        "descripcion",
+        "get_elementos",
+        "get_funciones",
+        "get_paginas",
+    )
+    filter_horizontal = (
+        "elementos_portada",
+        "funciones_adicionales",
+        "paginas_basicas",
+    )
+    search_fields = ("name", "descripcion")
+    ordering = ("id",)
+
+    fieldsets = (
+        (None, {"fields": ("name", "descripcion")}),
+        (
+            "Relaciones",
+            {
+                "fields": (
+                    "elementos_portada",
+                    "funciones_adicionales",
+                    "paginas_basicas",
+                )
+            },
+        ),
+    )
+
+    # 👇 Evita errores de integridad al guardar relaciones M2M
+    def save_related(self, request, form, formsets, change):
+        try:
+            with transaction.atomic():
+                super().save_related(request, form, formsets, change)
+        except IntegrityError:
+            self.message_user(
+                request,
+                "⚠️ Algunas relaciones inválidas fueron ignoradas al guardar este beneficio.",
+                level="warning",
+            )
+
+    # Helpers para mostrar relaciones en list_display
+    def get_elementos(self, obj):
+        return ", ".join([e.seccion for e in obj.elementos_portada.all()])
+
+    get_elementos.short_description = "Elementos portada"
+
+    def get_funciones(self, obj):
+        return ", ".join([f.pagina_avanzada for f in obj.funciones_adicionales.all()])
+
+    get_funciones.short_description = "Funciones adicionales"
+
+    def get_paginas(self, obj):
+        return ", ".join([p.pagina for p in obj.paginas_basicas.all()])
+
+    get_paginas.short_description = "Páginas básicas"
 
 
 @admin.register(TipoBeneficio)
@@ -184,11 +291,11 @@ class PuntajeBeneficioProductoAdmin(admin.ModelAdmin):
     list_display = ("id", "producto", "beneficio", "categoria", "puntaje")
     list_filter = ("categoria", "producto", "beneficio")
     search_fields = ("categoria", "producto__producto", "beneficio__name")
-    
-    
+
+
 @admin.register(Documento)
 class DocumentoAdmin(admin.ModelAdmin):
-    list_display = ( "cliente", "empresa", "usuario", "monto", "fecha_creacion","link")
+    list_display = ("cliente", "empresa", "usuario", "monto", "fecha_creacion", "link")
     search_fields = ("cliente", "empresa", "correo_compartido")
     list_filter = ("empresa", "fecha_creacion")
     ordering = ("-fecha_creacion",)
